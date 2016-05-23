@@ -27,9 +27,10 @@ const GLchar* vertexSource =
     "uniform mat4 model;"
     "uniform mat4 view;"
     "uniform mat4 proj;"
+    "uniform vec3 overrideColor;"
     "void main()"
     "{"
-    "    Color = color;"
+    "    Color = overrideColor * color;"
     "    Texcoord = texcoord;"
     "    gl_Position = proj * view * model * vec4(position, 1.0);"
     "}";
@@ -121,7 +122,14 @@ int main(int argc, char * argv[]) {
         0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
         0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
         -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+
+        -1.0f, -1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        1.0f, -1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        1.0f,  1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+        1.0f,  1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+        -1.0f,  1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
     };
     glBindBuffer(GL_ARRAY_BUFFER, vbo); // makes VBO active array_buffer
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // copy data
@@ -184,7 +192,7 @@ int main(int argc, char * argv[]) {
 
     // View matrix
     glm::mat4 view = glm::lookAt(
-            glm::vec3(1.2f, 1.2f, 1.2f), // position of the camera
+            glm::vec3(1.6f, 1.6f, 1.6f), // position of the camera
             glm::vec3(0.0f, 0.0f, 0.0f), // point to be centered on-screen
             glm::vec3(0.0f, 0.0f, 1.0f)  // up axis (+z direction)
     );
@@ -193,7 +201,7 @@ int main(int argc, char * argv[]) {
 
     // Projection matrix
     glm::mat4 proj = glm::perspective(
-            glm::radians(45.0f), // vertical field-of-view
+            glm::radians(60.0f), // vertical field-of-view
             800.0f / 600.0f, // aspect ratio (width/height)
             1.0f, // near plane
             10.0f); // far plane
@@ -221,12 +229,42 @@ int main(int argc, char * argv[]) {
         glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
 
         // Background Fill Color
-        glClearColor(0.0f, 0.0, 0.0f, 1.0f);
+        glClearColor(1.0f, 1.0, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Draw a triangle from the 3 vertices
         // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawArrays(GL_TRIANGLES, 0, 36); // draw cube
+
+        glEnable(GL_STENCIL_TEST);
+
+            // floor: disable depth buffer when drawing floor to prevent occluding reflection due to depth testing
+            glStencilFunc(GL_ALWAYS, 1, 0xFF); // Set any stencil to 1
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+            glStencilMask(0xFF); // Write to stencil buffer
+            glDepthMask(GL_FALSE); // Don't write to depth buffer
+            glClear(GL_STENCIL_BUFFER_BIT); // Clear stencil buffer (0 by default)
+
+            glDrawArrays(GL_TRIANGLES, 36, 6);
+
+            // Draw cube reflection
+            glStencilFunc(GL_EQUAL, 1, 0xFF); // Pass test if stencil value is 1
+            glStencilMask(0x00); // Don't write anything to stencil buffer
+            glDepthMask(GL_TRUE);
+
+
+            model = glm::scale(
+                    glm::translate(model, glm::vec3(0, 0, -1)),
+                    glm::vec3(1, 1, -1)
+                    );
+            glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
+
+            GLint uniColor = glGetUniformLocation(shaderProgram, "overrideColor");
+            glUniform3f(uniColor, 0.3f, 0.3f, 0.3f);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+            glUniform3f(uniColor, 1.0f, 1.0f, 1.0f);
+
+        glDisable(GL_STENCIL_TEST);
 
         // Flip Buffers and Draw
         glfwSwapBuffers(mWindow);
