@@ -32,13 +32,14 @@ const GLchar* fragmentSource =
     "in vec3 Color;"
     "in vec2 Texcoord;"
     "out vec4 outColor;"
+    "uniform float mixAmount;"
     "uniform sampler2D texKitten;"
     "uniform sampler2D texPuppy;"
     "void main()"
     "{"
     "    vec4 colKitten = texture(texKitten, Texcoord);"
     "    vec4 colPuppy = texture(texPuppy, Texcoord);"
-    "    outColor = mix(colKitten, colPuppy, 0.5);"
+    "    outColor = mix(colKitten, colPuppy, mixAmount);"
     "}";
 
 int main(int argc, char * argv[]) {
@@ -156,6 +157,10 @@ int main(int argc, char * argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
+    // Mix depends on time through uniform
+    GLint uniMix = glGetUniformLocation(shaderProgram, "mixAmount");
+    auto t_start = std::chrono::high_resolution_clock::now();
+
     // Rendering Loop
     while (glfwWindowShouldClose(mWindow) == false) {
         if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -165,9 +170,12 @@ int main(int argc, char * argv[]) {
         glClearColor(0.0f, 0.0, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // Mix amount depends on time
+        auto t_now = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
+        glUniform1f(uniMix, (sin(time * 4.0f) + 1.0f) / 2.0f);
 
         // Draw a triangle from the 3 vertices
-        // glDrawArrays(GL_TRIANGLES, 0, 6);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         // Flip Buffers and Draw
