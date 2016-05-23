@@ -67,6 +67,9 @@ int main(int argc, char * argv[]) {
     gladLoadGL();
     fprintf(stderr, "OpenGL %s\n", glGetString(GL_VERSION));
 
+    // Enable depth buffering
+    glEnable(GL_DEPTH_TEST);
+
     // Vertex Array Objects (VAO): store links between attributes and VBOs with raw vertex data
     // create and bound VAO at start b/c buffers/element buffers bound before will be ignored
     GLuint vao;
@@ -219,7 +222,7 @@ int main(int argc, char * argv[]) {
 
         // Background Fill Color
         glClearColor(0.0f, 0.0, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Draw a triangle from the 3 vertices
         // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
