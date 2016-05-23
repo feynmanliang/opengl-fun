@@ -34,12 +34,14 @@ const GLchar* fragmentSource =
     "out vec4 outColor;"
     "uniform float mixAmount;"
     "uniform sampler2D texKitten;"
-    "uniform sampler2D texPuppy;"
     "void main()"
     "{"
-    "    vec4 colKitten = texture(texKitten, Texcoord);"
-    "    vec4 colPuppy = texture(texPuppy, Texcoord);"
-    "    outColor = mix(colKitten, colPuppy, mixAmount);"
+    "    if (Texcoord.y < 0.5)"
+    "        outColor = texture(texKitten, Texcoord);"
+    "    else"
+    "        outColor = texture(texKitten,"
+    "            vec2(Texcoord.x + 0.05*(sin(50.0*Texcoord.y)), 1.0 - Texcoord.y)"
+    "        ) * vec4(0.7, 0.7, 1.0, 1.0);"
     "}";
 
 int main(int argc, char * argv[]) {
@@ -127,8 +129,8 @@ int main(int argc, char * argv[]) {
     glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), (void*)(5*sizeof(GLfloat)));
 
     // Specify texture
-    GLuint textures[2];
-    glGenTextures(2, textures);
+    GLuint textures[1];
+    glGenTextures(1, textures);
 
     int width, height, ncomp;
     unsigned char* image;
@@ -145,22 +147,6 @@ int main(int argc, char * argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, textures[1]);
-    image = stbi_load("sample2.png", &width, &height, &ncomp, 0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-    stbi_image_free(image);
-    glUniform1i(glGetUniformLocation(shaderProgram, "texPuppy"), 1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-
-    // Mix depends on time through uniform
-    GLint uniMix = glGetUniformLocation(shaderProgram, "mixAmount");
-    auto t_start = std::chrono::high_resolution_clock::now();
-
     // Rendering Loop
     while (glfwWindowShouldClose(mWindow) == false) {
         if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -169,11 +155,6 @@ int main(int argc, char * argv[]) {
         // Background Fill Color
         glClearColor(0.0f, 0.0, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-
-        // Mix amount depends on time
-        auto t_now = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
-        glUniform1f(uniMix, (sin(time * 4.0f) + 1.0f) / 2.0f);
 
         // Draw a triangle from the 3 vertices
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
