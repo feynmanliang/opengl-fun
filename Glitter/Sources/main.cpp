@@ -32,10 +32,13 @@ const GLchar* fragmentSource =
     "in vec3 Color;"
     "in vec2 Texcoord;"
     "out vec4 outColor;"
-    "uniform sampler2D tex;"
+    "uniform sampler2D texKitten;"
+    "uniform sampler2D texPuppy;"
     "void main()"
     "{"
-    "    outColor = texture(tex, Texcoord) * vec4(Color, 1.0);"
+    "    vec4 colKitten = texture(texKitten, Texcoord);"
+    "    vec4 colPuppy = texture(texPuppy, Texcoord);"
+    "    outColor = mix(colKitten, colPuppy, 0.5);"
     "}";
 
 int main(int argc, char * argv[]) {
@@ -123,24 +126,35 @@ int main(int argc, char * argv[]) {
     glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), (void*)(5*sizeof(GLfloat)));
 
     // Specify texture
-    GLuint tex;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
+    GLuint textures[2];
+    glGenTextures(2, textures);
 
-    int width, height, comp;
-    unsigned char* image = stbi_load("sample.png", &width, &height, &comp, 0);
-    fprintf(stdout, "%i, %i, %i\n", width, height, comp);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA,
-                GL_UNSIGNED_BYTE, image);
+    int width, height, ncomp;
+    unsigned char* image;
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    image = stbi_load("sample.png", &width, &height, &ncomp, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
     stbi_image_free(image);
-
+    glUniform1i(glGetUniformLocation(shaderProgram, "texKitten"), 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
-    fprintf(stdout, "%i%\n", tex);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, textures[1]);
+    image = stbi_load("sample2.png", &width, &height, &ncomp, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+    stbi_image_free(image);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texPuppy"), 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
     // Rendering Loop
     while (glfwWindowShouldClose(mWindow) == false) {
