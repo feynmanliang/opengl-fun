@@ -19,7 +19,7 @@
 // Shader sources
 const GLchar* vertexSource =
     "#version 150 core\n"
-    "in vec2 position;"
+    "in vec3 position;"
     "in vec3 color;"
     "in vec2 texcoord;"
     "out vec3 Color;"
@@ -31,7 +31,7 @@ const GLchar* vertexSource =
     "{"
     "    Color = color;"
     "    Texcoord = texcoord;"
-    "    gl_Position = proj * view * model * vec4(position, 0.0, 1.0);"
+    "    gl_Position = proj * view * model * vec4(position, 1.0);"
     "}";
 const GLchar* fragmentSource =
     "#version 150 core\n"
@@ -42,12 +42,7 @@ const GLchar* fragmentSource =
     "uniform sampler2D texKitten;"
     "void main()"
     "{"
-    "    if (Texcoord.y < 0.5)"
-    "        outColor = texture(texKitten, Texcoord);"
-    "    else"
-    "        outColor = texture(texKitten,"
-    "            vec2(Texcoord.x + 0.05*(sin(50.0*Texcoord.y)), 1.0 - Texcoord.y)"
-    "        ) * vec4(0.7, 0.7, 1.0, 1.0);"
+    "    outColor = vec4(Color, 1.0) * texture(texKitten, Texcoord);"
     "}";
 
 int main(int argc, char * argv[]) {
@@ -83,11 +78,47 @@ int main(int argc, char * argv[]) {
     glGenBuffers(1, &vbo); // Generate 1 buffer
 
     GLfloat vertices[] = {
-    //  Position      Color             Texcoords
-        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
-        -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
     };
     glBindBuffer(GL_ARRAY_BUFFER, vbo); // makes VBO active array_buffer
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // copy data
@@ -95,13 +126,6 @@ int main(int argc, char * argv[]) {
     // Add element buffer to control order of rengering
     GLuint ebo;
     glGenBuffers(1, &ebo);
-
-    GLuint elements[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
     // Create/compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); // int descriptor to shader object
@@ -121,18 +145,18 @@ int main(int argc, char * argv[]) {
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
 
-    // Specify layout of vertex data (saved to bound VAO)
+    // Specify the layout of the vertex data
     GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
     glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), 0);
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), 0);
 
     GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
     glEnableVertexAttribArray(colAttrib);
-    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), (void*)(2*sizeof(GLfloat)));
+    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
 
     GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
     glEnableVertexAttribArray(texAttrib);
-    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), (void*)(5*sizeof(GLfloat)));
+    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
 
     // Specify texture
     GLuint textures[1];
@@ -147,15 +171,13 @@ int main(int argc, char * argv[]) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
     stbi_image_free(image);
     glUniform1i(glGetUniformLocation(shaderProgram, "texKitten"), 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     // Model matrix
-    glm::mat4 model;
-    GLint uniTrans = glGetUniformLocation(shaderProgram, "model");
+    GLint uniModel = glGetUniformLocation(shaderProgram, "model");
 
     // View matrix
     glm::mat4 view = glm::lookAt(
@@ -188,18 +210,20 @@ int main(int argc, char * argv[]) {
         float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
 
         // Update transform
-        model= glm::rotate(
+        glm::mat4 model;
+        model = glm::rotate(
                 model,
-                0.001f * time * glm::radians(180.0f),
+                time * glm::radians(180.0f),
                 glm::vec3(0.0f, 0.0f, 1.0f));
-        glUniformMatrix4fv(uniTrans, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
 
         // Background Fill Color
         glClearColor(0.0f, 0.0, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Draw a triangle from the 3 vertices
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Flip Buffers and Draw
         glfwSwapBuffers(mWindow);
