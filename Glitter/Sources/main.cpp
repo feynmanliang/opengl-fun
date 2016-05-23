@@ -4,6 +4,9 @@
 // System Headers
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -21,11 +24,12 @@ const GLchar* vertexSource =
     "in vec2 texcoord;"
     "out vec3 Color;"
     "out vec2 Texcoord;"
+    "uniform mat4 trans;"
     "void main()"
     "{"
     "    Color = color;"
     "    Texcoord = texcoord;"
-    "    gl_Position = vec4(position, 0.0, 1.0);"
+    "    gl_Position = trans * vec4(position, 0.0, 1.0);"
     "}";
 const GLchar* fragmentSource =
     "#version 150 core\n"
@@ -147,10 +151,28 @@ int main(int argc, char * argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
+    // Matrix transform uniform
+    glm::mat4 trans;
+    GLint uniTrans = glGetUniformLocation(shaderProgram, "trans");
+
+    // Time
+    auto t_start = std::chrono::high_resolution_clock::now();
+
     // Rendering Loop
     while (glfwWindowShouldClose(mWindow) == false) {
         if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(mWindow, true);
+
+        // Calculate time
+        auto t_now = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
+
+        // Update transform
+        trans = glm::rotate(
+                trans,
+                time * glm::radians(180.0f),
+                glm::vec3(0.0f, 0.0f, 1.0f));
+        glUniformMatrix4fv(uniTrans, 1, GL_FALSE, glm::value_ptr(trans));
 
         // Background Fill Color
         glClearColor(0.0f, 0.0, 0.0f, 1.0f);
