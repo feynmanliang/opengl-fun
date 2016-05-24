@@ -68,6 +68,40 @@ int main(int argc, char * argv[]) {
     gladLoadGL();
     fprintf(stderr, "OpenGL %s\n", glGetString(GL_VERSION));
 
+    // Create and bind framebuffer object
+    GLuint frameBuffer;
+    glGenFramebuffers(1, &frameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+    // Create and use texture image for the color buffer of the new framebuffer
+    GLuint texColorBuffer;
+    glGenTextures(1, &texColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+    glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGB, mWidth, mHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0);
+
+    // Renderbuffer Object to store combined depth/stencil buffers
+    GLuint rboDepthStencil;
+    glGenRenderbuffers(1, &rboDepthStencil);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepthStencil);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, mWidth, mHeight);
+    glFramebufferRenderbuffer(
+            GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepthStencil);
+
+    // Select framebuffer as render target
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+    // Check that framebuffer successfully bound and attached
+    GLint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        printf("Framebuffer creation failed with status %#04x\n", status);
+        return EXIT_FAILURE;
+    }
+
     // Enable depth buffering
     glEnable(GL_DEPTH_TEST);
 
@@ -143,10 +177,29 @@ int main(int argc, char * argv[]) {
     glShaderSource(vertexShader, 1, &vertexSource, NULL); // makes active
     glCompileShader(vertexShader);
 
+    // Check successful shader compilation
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &status);
+    if (status != GL_TRUE) {
+        char buffer[512];
+        glGetShaderInfoLog(vertexShader, 512, NULL, buffer);
+        printf("Shader creation failed with error log:\n%s\n", buffer);
+        return EXIT_FAILURE;
+    }
+
     // Create/compile fragmentshader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
     glCompileShader(fragmentShader);
+
+    // Check successful shader compilation
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &status);
+    if (status != GL_TRUE) {
+        char buffer[512];
+        glGetShaderInfoLog(fragmentShader, 512, NULL, buffer);
+        printf("Shader creation failed with error log:\n%s\n", buffer);
+        return EXIT_FAILURE;
+    }
+
 
     // Link shaders into shader program
     GLuint shaderProgram = glCreateProgram();
@@ -208,11 +261,16 @@ int main(int argc, char * argv[]) {
     GLint uniProj = glGetUniformLocation(shaderProgram, "proj");
     glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
 
+
     // Time
     auto t_start = std::chrono::high_resolution_clock::now();
 
     // Rendering Loop
     while (glfwWindowShouldClose(mWindow) == false) {
+        // Wireframe mode
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
         if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(mWindow, true);
 
