@@ -17,7 +17,7 @@
 #include <cstdlib>
 
 // Shader sources
-const GLchar* vertexSource =
+const GLchar* sceneVertexSource =
     "#version 150 core\n"
     "in vec3 position;"
     "in vec3 color;"
@@ -34,7 +34,7 @@ const GLchar* vertexSource =
     "    Texcoord = texcoord;"
     "    gl_Position = proj * view * model * vec4(position, 1.0);"
     "}";
-const GLchar* fragmentSource =
+const GLchar* sceneFragmentSource =
     "#version 150 core\n"
     "in vec3 Color;"
     "in vec2 Texcoord;"
@@ -45,7 +45,7 @@ const GLchar* fragmentSource =
     "{"
     "    outColor = vec4(Color, 1.0) * texture(texKitten, Texcoord);"
     "}";
-const GLchar* vertexSource2D =
+const GLchar* screenVertexSource =
     "#version 150 core\n"
     "in vec2 position;"
     "in vec2 texcoord;"
@@ -64,7 +64,30 @@ const GLchar* fragmentSource2D =
     "    outColor = texture(texFramebuffer, Texcoord);"
     "}";
 
+// Create a texture from an image file
+GLuint loadTexture(const GLchar* path) {
+    GLuint texture;
+    glGenTextures(1, &texture);
+
+    int width, height, ncomp;
+    unsigned char* image;
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    image = stbi_load(path, &width, &height, &ncomp, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+    stbi_image_free(image);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	return texture;
+}
+
 int main(int argc, char * argv[]) {
+    auto t_start = std::chrono::high_resolution_clock::now();
+
     // Load GLFW and Create a Window
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -240,22 +263,16 @@ int main(int argc, char * argv[]) {
     glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
 
     // Specify texture
-    GLuint textures[1];
-    glGenTextures(1, textures);
-
-    int width, height, ncomp;
-    unsigned char* image;
+    GLuint textures[2];
+    glGenTextures(2, textures);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textures[0]);
-    image = stbi_load("sample.png", &width, &height, &ncomp, 0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-    stbi_image_free(image);
+	textures[0] = loadTexture("sample.png");
     glUniform1i(glGetUniformLocation(shaderProgram, "texKitten"), 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glActiveTexture(GL_TEXTURE1);
+	textures[1] = loadTexture("sample2.png");
+    glUniform1i(glGetUniformLocation(shaderProgram, "texPuppy"), 0);
+
 
     // Model matrix
     GLint uniModel = glGetUniformLocation(shaderProgram, "model");
@@ -279,8 +296,6 @@ int main(int argc, char * argv[]) {
     glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
 
 
-    // Time
-    auto t_start = std::chrono::high_resolution_clock::now();
 
     // Rendering Loop
     while (glfwWindowShouldClose(mWindow) == false) {
