@@ -16,55 +16,119 @@
 #include <cstdio>
 #include <cstdlib>
 
-// Shader sources
-const GLchar* sceneVertexSource =
-    "#version 150 core\n"
-    "in vec3 position;"
-    "in vec3 color;"
-    "in vec2 texcoord;"
-    "out vec3 Color;"
-    "out vec2 Texcoord;"
-    "uniform mat4 model;"
-    "uniform mat4 view;"
-    "uniform mat4 proj;"
-    "uniform vec3 overrideColor;"
-    "void main()"
-    "{"
-    "    Color = overrideColor * color;"
-    "    Texcoord = texcoord;"
-    "    gl_Position = proj * view * model * vec4(position, 1.0);"
-    "}";
-const GLchar* sceneFragmentSource =
-    "#version 150 core\n"
-    "in vec3 Color;"
-    "in vec2 Texcoord;"
-    "out vec4 outColor;"
-    "uniform sampler2D texKitten;"
-    "uniform sampler2D texPuppy;"
-    "void main()"
-    "{"
-    "    outColor = vec4(Color, 1.0) * mix(texture(texKitten, Texcoord), texture(texPuppy, Texcoord), 0.5);"
-    "}";
+// Macros
+#define GLSL(src) "#version 150 core\n" #src
 
-const GLchar* screenVertexSource =
-    "#version 150 core\n"
-    "in vec2 position;"
-    "in vec2 texcoord;"
-    "out vec2 Texcoord;"
-    "void main()"
-    "{"
-    "    Texcoord = texcoord;"
-    "    gl_Position = vec4(position, 0.0, 1.0);"
-    "}";
-const GLchar* screenFragmentSource =
-    "#version 150 core\n"
-    "in vec2 Texcoord;"
-    "out vec4 outColor;"
-    "uniform sampler2D texFramebuffer;"
-    "void main()"
-    "{"
-    "    outColor = texture(texFramebuffer, Texcoord);"
-    "}";
+// Shader sources
+const GLchar* sceneVertexSource = GLSL(
+    in vec3 position;
+    in vec3 color;
+    in vec2 texcoord;
+    out vec3 Color;
+    out vec2 Texcoord;
+    uniform mat4 model;
+    uniform mat4 view;
+    uniform mat4 proj;
+    uniform vec3 overrideColor;
+    void main()
+    {
+        Color = overrideColor * color;
+        Texcoord = texcoord;
+        gl_Position = proj * view * model * vec4(position, 1.0);
+    }
+);
+const GLchar* sceneFragmentSource = GLSL(
+    in vec3 Color;
+    in vec2 Texcoord;
+    out vec4 outColor;
+    uniform sampler2D texKitten;
+    uniform sampler2D texPuppy;
+    void main()
+    {
+        outColor = vec4(Color, 1.0) * mix(texture(texKitten, Texcoord), texture(texPuppy, Texcoord), 0.5);
+    }
+);
+
+const GLchar* screenVertexSource = GLSL(
+    in vec2 position;
+    in vec2 texcoord;
+    out vec2 Texcoord;
+    void main()
+    {
+        Texcoord = texcoord;
+        gl_Position = vec4(position, 0.0, 1.0);
+    }
+);
+const GLchar* screenFragmentSourceOrig = GLSL(
+    in vec2 Texcoord;
+    out vec4 outColor;
+    uniform sampler2D texFramebuffer;
+    void main()
+    {
+        outColor = texture(texFramebuffer, Texcoord);
+    }
+);
+const GLchar* screenFragmentSourceInvert = GLSL(
+    in vec2 Texcoord;
+    out vec4 outColor;
+    uniform sampler2D texFramebuffer;
+    void main()
+    {
+        outColor = vec4(1.0, 1.0, 1.0, 1.0) - texture(texFramebuffer, Texcoord);
+    }
+);
+const GLchar* screenFragmentSourceGrayscale = GLSL(
+    in vec2 Texcoord;
+    out vec4 outColor;
+    uniform sampler2D texFramebuffer;
+    void main()
+    {
+        outColor = texture(texFramebuffer, Texcoord);
+        float avg = (outColor.r + outColor.g + outColor.b) / 3.0;
+        outColor = vec4(avg, avg, avg, 1.0);
+    }
+);
+const GLchar* screenFragmentSourceBlur = GLSL(
+    in vec2 Texcoord;
+    out vec4 outColor;
+    uniform sampler2D texFramebuffer;
+    const float blurSizeH = 1.0 / 300.0;
+    const float blurSizeV = 1.0 / 200.0;
+    void main()
+    {
+       vec4 sum = vec4(0.0);
+       for (int x = -4; x <= 4; x++)
+           for (int y = -4; y <= 4; y++)
+               sum += texture(
+                   texFramebuffer,
+                   vec2(Texcoord.x + x * blurSizeH, Texcoord.y + y * blurSizeV)
+               ) / 81.0;
+       outColor = sum;
+    }
+);
+const GLchar* screenFragmentSourceSobel = GLSL(
+    in vec2 Texcoord;
+    out vec4 outColor;
+    uniform sampler2D texFramebuffer;
+    const float blurSizeH = 1.0 / 300.0;
+    const float blurSizeV = 1.0 / 200.0;
+    void main()
+    {
+        vec4 top         = texture(texFramebuffer, vec2(Texcoord.x, Texcoord.y + 1.0 / 200.0));
+        vec4 bottom      = texture(texFramebuffer, vec2(Texcoord.x, Texcoord.y - 1.0 / 200.0));
+        vec4 left        = texture(texFramebuffer, vec2(Texcoord.x - 1.0 / 300.0, Texcoord.y));
+        vec4 right       = texture(texFramebuffer, vec2(Texcoord.x + 1.0 / 300.0, Texcoord.y));
+        vec4 topLeft     = texture(texFramebuffer, vec2(Texcoord.x - 1.0 / 300.0, Texcoord.y + 1.0 / 200.0));
+        vec4 topRight    = texture(texFramebuffer, vec2(Texcoord.x + 1.0 / 300.0, Texcoord.y + 1.0 / 200.0));
+        vec4 bottomLeft  = texture(texFramebuffer, vec2(Texcoord.x - 1.0 / 300.0, Texcoord.y - 1.0 / 200.0));
+        vec4 bottomRight = texture(texFramebuffer, vec2(Texcoord.x + 1.0 / 300.0, Texcoord.y - 1.0 / 200.0));
+        vec4 sx = -topLeft - 2 * left - bottomLeft + topRight   + 2 * right  + bottomRight;
+        vec4 sy = -topLeft - 2 * top  - topRight   + bottomLeft + 2 * bottom + bottomRight;
+        vec4 sobel = sqrt(sx * sx + sy * sy);
+        outColor = sobel;
+    }
+);
+const GLchar* screenFragmentSource = screenFragmentSourceSobel;
 
 // Cube vertices
 GLfloat cubeVertices[] = {
