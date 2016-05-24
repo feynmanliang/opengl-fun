@@ -45,6 +45,24 @@ const GLchar* fragmentSource =
     "{"
     "    outColor = vec4(Color, 1.0) * texture(texKitten, Texcoord);"
     "}";
+const GLchar* vertexSource2D =
+    "#version 150 core\n"
+    "in vec2 position;"
+    "in vec2 texcoord;"
+    "void main()"
+    "{"
+    "    Texcoord = texcoord;"
+    "    gl_Position = vec4(position, 0.0, 1.0);"
+    "}";
+const GLchar* fragmentSource2D =
+    "#version 150 core\n"
+    "in vec2 Texcoord;"
+    "out vec4 outColor;"
+    "uniform sampler2D texFramebuffer;"
+    "void main()"
+    "{"
+    "    outColor = texture(texFramebuffer, Texcoord);"
+    "}";
 
 int main(int argc, char * argv[]) {
     // Load GLFW and Create a Window
@@ -92,9 +110,6 @@ int main(int argc, char * argv[]) {
     glFramebufferRenderbuffer(
             GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepthStencil);
 
-    // Select framebuffer as render target
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-
     // Check that framebuffer successfully bound and attached
     GLint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
@@ -102,14 +117,16 @@ int main(int argc, char * argv[]) {
         return EXIT_FAILURE;
     }
 
-    // Enable depth buffering
-    glEnable(GL_DEPTH_TEST);
 
     // Vertex Array Objects (VAO): store links between attributes and VBOs with raw vertex data
     // create and bound VAO at start b/c buffers/element buffers bound before will be ignored
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao); // future `glVertexAttribPointer` will stored in this VAO
+    GLuint vaoCube, vaoQuad;
+    glGenVertexArrays(1, &vaoCube);
+    glGenVertexArrays(1, &vaoQuad);
+    glBindVertexArray(vaoCube);
+
+    // Enable depth test
+    glEnable(GL_DEPTH_TEST);
 
     // Create Vertex Buffer Object (VBO) and copy data over
     GLuint vbo; // uint descriptor to Vertex Buffer Object
@@ -268,7 +285,7 @@ int main(int argc, char * argv[]) {
     // Rendering Loop
     while (glfwWindowShouldClose(mWindow) == false) {
         // Wireframe mode
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -290,9 +307,8 @@ int main(int argc, char * argv[]) {
         glClearColor(1.0f, 1.0, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Draw a triangle from the 3 vertices
-        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glDrawArrays(GL_TRIANGLES, 0, 36); // draw cube
+        // Draw cube scene
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glEnable(GL_STENCIL_TEST);
 
@@ -323,6 +339,15 @@ int main(int argc, char * argv[]) {
             glUniform3f(uniColor, 1.0f, 1.0f, 1.0f);
 
         glDisable(GL_STENCIL_TEST);
+
+        // Bind default framebuffer and draw contents of `frameBuffer`
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindVertexArray(vaoQuad);
+        glDisable(GL_DEPTH_TEST);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         // Flip Buffers and Draw
         glfwSwapBuffers(mWindow);
