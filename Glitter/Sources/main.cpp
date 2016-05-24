@@ -12,7 +12,6 @@
 #include <stb_image.h>
 
 // Standard Headers
-#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 
@@ -284,8 +283,6 @@ void specifyScreenVertexAttributes(GLuint shaderProgram) {
 
 
 int main(int argc, char * argv[]) {
-    auto t_start = std::chrono::high_resolution_clock::now();
-
     // Load GLFW and Create a Window
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -433,8 +430,7 @@ int main(int argc, char * argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Calculate model transformation
-        auto t_now = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
+        GLfloat time = glfwGetTime();
 
         glm::mat4 model;
         model = glm::rotate(
